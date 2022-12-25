@@ -2,80 +2,41 @@ package main
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/urfave/cli/v2"
+	"instagram-cli-go/flags"
+	applog "instagram-cli-go/log"
+	"instagram-cli-go/program"
+	"log"
 	"os"
 )
 
 func main() {
-	p := tea.NewProgram(initialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+	app := &cli.App{
+		Name:  "instagram-cli-go",
+		Usage: "CLI application for processing Instagram post details for giveaways",
+		Flags: []cli.Flag{
+			flags.LogFile,
+		},
+		Action: run,
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatalf("error while running application: %v",
+			err)
 	}
 }
 
-type model struct {
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
-}
-
-func initialModel() model {
-	return model{
-		choices:  []string{"Buy carrots", "Buy kohlrabi"},
-		cursor:   0,
-		selected: make(map[int]struct{}),
+func run(c *cli.Context) error {
+	logConfig := applog.NewConfigFromCLI(c)
+	logFile, err := applog.Init(logConfig)
+	if err != nil {
+		return fmt.Errorf("could not initialize logger: %w", err)
 	}
-}
+	defer func(logFile *os.File) {
+		_ = logFile.Close()
+	}(logFile)
 
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
-		}
-	}
-
-	return m, nil
-}
-
-func (m model) View() string {
-	s := "what should we buy at the market?\n\n"
-
-	for i, choice := range m.choices {
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-
-		checked := " "
-		if _, ok := m.selected[i]; ok {
-			checked = "x"
-		}
-
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
-	}
-
-	s += "\nPress q to quit.\n"
-	return s
+	p := program.New()
+	_, err = p.Run()
+	return err
 }
