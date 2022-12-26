@@ -1,126 +1,86 @@
 package program
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"log"
 	"strings"
 )
 
-var (
-	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("86"))
-	noStyle      = lipgloss.NewStyle()
-)
+type appState struct {
+}
 
-type model struct {
-	inputs     []textinput.Model
-	focusIndex int
+type appModel struct {
+	stage  Stage
+	models map[Stage]StageModel
+	state  appState
 }
 
 func New() *tea.Program {
-	m := model{
-		inputs: make([]textinput.Model, 4),
+	m := appModel{
+		stage: StageInput,
 	}
 
-	for i := range m.inputs {
-		t := textinput.New()
-		switch i {
-		case 0:
-			t.Placeholder = "Instagram Username (for authentication)"
-			t.Focus()
-			t.PromptStyle = focusedStyle
-		case 1:
-			t.Placeholder = "Instagram Password (for authentication)"
-			t.EchoMode = textinput.EchoPassword
-			t.EchoCharacter = '*'
-		case 2:
-			t.Placeholder = "Instagram Username (for follower lookup)"
-		case 3:
-			t.Placeholder = "Instagram Post Link"
-			// TODO: validate text is link
-		}
-
-		m.inputs[i] = t
+	models := map[Stage]StageModel{
+		StageInput: newInputModel(&m.state),
+		StageLoad:  newLoadModel(&m.state),
 	}
+	m.models = models
 
 	p := tea.NewProgram(m)
 	return p
 }
 
-func (m model) Init() tea.Cmd {
-	return textinput.Blink
+func (m appModel) Init() tea.Cmd {
+	return m.models[StageInput].Init()
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
+func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch k := msg.Type; k {
+		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
-		case tea.KeyTab, tea.KeyShiftTab, tea.KeyEnd, tea.KeyUp, tea.KeyDown:
-
-			// continue on in app: for now, quit
-			if k == tea.KeyEnter && m.focusIndex == len(m.inputs) {
-				return m, tea.Quit
-			}
-
-			if k == tea.KeyUp || k == tea.KeyShiftTab {
-				m.focusIndex--
-			} else {
-				m.focusIndex++
-			}
-
-			if m.focusIndex > len(m.inputs) {
-				m.focusIndex = 0
-			} else if m.focusIndex < 0 {
-				m.focusIndex = len(m.inputs)
-			}
-
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := range m.inputs {
-				if i == m.focusIndex {
-					cmds[i] = m.inputs[i].Focus()
-					m.inputs[i].PromptStyle = focusedStyle
-					continue
-				}
-
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = noStyle
-			}
-			return m, tea.Batch(cmds...)
 		}
 	}
 
-	cmd = m.updateInputs(msg)
-	return m, cmd
-}
-
-func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
-	cmds := make([]tea.Cmd, len(m.inputs))
-
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	// process current stage updates
+	model, ok := m.models[m.stage]
+	if !ok {
+		log.Printf("error[update]: could not find model for stage %v", m.stage)
+		return m, tea.Quit
 	}
 
-	return tea.Batch(cmds...)
+	nextStage, nextModel, nextCmd := model.Update(msg)
+	if nextStage == StageExit {
+		return m, tea.Quit
+	}
+	m.models[m.stage] = nextModel
+
+	// no stage transition; continue
+	if m.stage == nextStage {
+		return m, nextCmd
+	}
+
+	// stage transition: move onto initializing next model
+	nextModel, ok = m.models[nextStage]
+	if !ok {
+		log.Printf("error[update]: could not find model for next stage %v", m.stage)
+		return m, tea.Quit
+	}
+	m.stage = nextStage
+	return m, nextModel.Init()
 }
 
-func (m model) View() string {
+func (m appModel) View() string {
 	var b strings.Builder
-
 	b.WriteString("Instagram Giveaway CLI Application\n\n")
 
-	for i := range m.inputs {
-		b.WriteString(m.inputs[i].View())
-		b.WriteRune('\n')
+	model, ok := m.models[m.stage]
+	if !ok {
+		log.Printf("error[view]: could not find model for stage %v", m.stage)
+		return ""
 	}
 
-	button := "\n[ Submit ]\n"
-	if m.focusIndex == len(m.inputs) {
-		button = focusedStyle.Render(button)
-	}
-	b.WriteString(button)
+	b.WriteString(model.View())
 	return b.String()
 }
