@@ -62,13 +62,16 @@ func (m inputModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
 		case tea.KeyTab, tea.KeyShiftTab, tea.KeyEnter, tea.KeyUp, tea.KeyDown:
 			// continue on in app: for now, quit
 			if k == tea.KeyEnter && m.focusIndex == len(m.inputs) {
+				err := m.submit()
+				if err != nil {
+					log.Printf("could not submit credentials: %v", err)
+				}
 				return StageLoad, m, nil
 			}
 
 			if k == tea.KeyUp || k == tea.KeyShiftTab {
 				m.focusIndex--
 			} else {
-				log.Printf("[input]: focus down")
 				m.focusIndex++
 			}
 
@@ -105,6 +108,20 @@ func (m *inputModel) updateInputs(msg tea.Msg) tea.Cmd {
 	}
 
 	return tea.Batch(cmds...)
+}
+
+func (m inputModel) submit() error {
+	for _, input := range m.inputs {
+		if input.Err != nil {
+			return input.Err
+		}
+	}
+
+	m.appState.authUsername = m.inputs[0].Value()
+	m.appState.authPassword = m.inputs[1].Value()
+	m.appState.targetUsername = m.inputs[2].Value()
+	m.appState.targetPostURL = m.inputs[3].Value()
+	return nil
 }
 
 func (m inputModel) View() string {

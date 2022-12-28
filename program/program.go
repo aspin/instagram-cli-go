@@ -7,6 +7,10 @@ import (
 )
 
 type appState struct {
+	authUsername   string
+	authPassword   string
+	targetUsername string
+	targetPostURL  string
 }
 
 type appModel struct {

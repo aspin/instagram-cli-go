@@ -1,3 +1,5 @@
+github.com/ahmdrz/goinsta/v2 v2.4.6-0.20210323075704-19ba546e65c5 h1:gtb/mmtAMsNzOuP5jo2q5w2vPnq0Y2ThpyXOCKCc7iw=
+github.com/ahmdrz/goinsta/v2 v2.4.6-0.20210323075704-19ba546e65c5/go.mod h1:XUEELCWd3hVSqADejqxTa8Uc7Yto9cb6a6HrfkGwVf8=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/aymanbagabas/go-osc52 v1.0.3 h1:DTwqENW7X9arYimJrPeGZcV0ln14sGMt3pHZspWD+Mg=

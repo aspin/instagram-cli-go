@@ -12,7 +12,7 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:  "instagram-cli-go",
+		Name:  "instagram-giveaway-cli-go",
 		Usage: "CLI application for processing Instagram post details for giveaways",
 		Flags: []cli.Flag{
 			flags.LogFile,

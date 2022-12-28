@@ -1,6 +1,7 @@
 package program
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 	"strings"
@@ -8,7 +9,6 @@ import (
 )
 
 const (
-	padding  = 2
 	maxWidth = 80
 )
 
@@ -34,7 +34,7 @@ func (m loadModel) Init() tea.Cmd {
 func (m loadModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.progress.Width = msg.Width - padding*2 - 4
+		m.progress.Width = msg.Width - 4
 		if m.progress.Width > maxWidth {
 			m.progress.Width = maxWidth
 		}
@@ -59,10 +59,12 @@ func (m loadModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
 }
 
 func (m loadModel) View() string {
-	pad := strings.Repeat(" ", padding)
-	return "\n" +
-		pad + m.progress.View() + "\n\n" +
-		pad
+	var b strings.Builder
+	_, _ = fmt.Fprintf(&b, "Loading post (%v) and user %v...\n", m.appState.targetPostURL, m.appState.targetUsername)
+	b.WriteString(m.progress.View())
+	b.WriteString("\n\n")
+
+	return b.String()
 }
 
 func tickCmd() tea.Cmd {
