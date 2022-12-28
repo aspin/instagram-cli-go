@@ -1,10 +1,13 @@
 package instagram
 
+import (
+	"fmt"
+)
+
 type Service interface {
-	Query(username string, postURL string) error
-	Followers(username string) (map[UserID]User, error)
+	Followers(username string) (UserSet, error)
 	Post(postURL string) (Media, error)
-	PostLikers(postURL string) (map[UserID]User, error)
+	PostLikers(postURL string) (UserSet, error)
 	PostComments(postURL string) ([]Comment, error)
 }
 
@@ -16,22 +19,35 @@ func NewService(authUsername string, authPassword string) Service {
 	return &cachedService{}
 }
 
-func (c *cachedService) Query()
-
-func (c *cachedService) Followers(username string) (map[UserID]User, error) {
+func (c *cachedService) Followers(username string) (UserSet, error) {
+	fixed := map[UserID]User{
+		"1234": {ID: "1234", Username: "kevinchen"},
+	}
+	return fixed, nil
 }
 
 func (c *cachedService) Post(postURL string) (Media, error) {
-	//TODO implement me
-	panic("implement me")
+	fixed := Media{
+		PostName: "about bears!",
+	}
+	return fixed, nil
 }
 
-func (c *cachedService) PostLikers(postURL string) (map[UserID]User, error) {
-	//TODO implement me
-	panic("implement me")
+func (c *cachedService) PostLikers(postURL string) (UserSet, error) {
+	fixed := map[UserID]User{
+		"1234": {ID: "1234", Username: "kevinchen"},
+	}
+	return fixed, fmt.Errorf("http 500 failed: %s", postURL)
 }
 
 func (c *cachedService) PostComments(postURL string) ([]Comment, error) {
-	//TODO implement me
-	panic("implement me")
+	fixed := []Comment{
+		{
+			Text: "answered the question",
+		},
+		{
+			Text: "congrats on 5k!",
+		},
+	}
+	return fixed, nil
 }

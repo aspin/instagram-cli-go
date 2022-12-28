@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
+	"instagram-cli-go/instagram"
 	"strings"
 	"time"
 )
@@ -13,22 +14,70 @@ const (
 )
 
 type loadModel struct {
-	progress progress.Model
-	appState *appState
+	progress         progress.Model
+	appState         *appState
+	instagramService instagram.Service
 }
 
-type tickMsg time.Time
+type progressMsg struct {
+	completed float64
+}
+
+type failureMsg struct {
+	err error
+}
 
 func newLoadModel(appState *appState) StageModel {
 	m := loadModel{
-		progress: progress.New(progress.WithDefaultGradient()),
-		appState: appState,
+		progress:         progress.New(progress.WithDefaultGradient()),
+		appState:         appState,
+		instagramService: instagram.NewService(appState.authUsername, appState.authPassword),
 	}
 	return m
 }
 
-func (m loadModel) Init() tea.Cmd {
-	return tickCmd()
+func (m loadModel) Init(dispatch StageDispatcher) tea.Cmd {
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		var err error
+		m.appState.followers, err = m.instagramService.Followers(m.appState.targetUsername)
+		if err != nil {
+			dispatch(failureMsg{err: fmt.Errorf("could not load followers: %w", err)})
+			return
+		}
+		dispatch(progressMsg{completed: 0.1})
+	}()
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		var err error
+		m.appState.post, err = m.instagramService.Post(m.appState.targetPostURL)
+		if err != nil {
+			dispatch(failureMsg{err: fmt.Errorf("could not load post: %w", err)})
+			return
+		}
+		dispatch(progressMsg{completed: 0.1})
+	}()
+	go func() {
+		time.Sleep(1 * time.Second)
+		var err error
+		m.appState.postLikers, err = m.instagramService.PostLikers(m.appState.targetPostURL)
+		if err != nil {
+			dispatch(failureMsg{err: fmt.Errorf("could not load post likers: %w", err)})
+			return
+		}
+		dispatch(progressMsg{completed: 0.6})
+	}()
+	go func() {
+		time.Sleep(400 * time.Millisecond)
+		var err error
+		m.appState.postComments, err = m.instagramService.PostComments(m.appState.targetPostURL)
+		if err != nil {
+			dispatch(failureMsg{err: fmt.Errorf("could not load comments: %w", err)})
+			return
+		}
+		dispatch(progressMsg{completed: 0.2})
+	}()
+	return nil
 }
 
 func (m loadModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
@@ -40,13 +89,17 @@ func (m loadModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
 		}
 		return StageLoad, m, nil
 
-	case tickMsg:
+	case progressMsg:
 		if m.progress.Percent() == 1.0 {
-			return StageExit, m, tea.Quit
+			return StageProcess, nil, nil
 		}
 
-		cmd := m.progress.IncrPercent(0.25)
-		return StageLoad, m, tea.Batch(tickCmd(), cmd)
+		cmd := m.progress.IncrPercent(msg.completed)
+		return StageLoad, m, cmd
+
+	case failureMsg:
+		m.appState.err = msg.err
+		return StageError, nil, nil
 
 	case progress.FrameMsg:
 		progressModel, cmd := m.progress.Update(msg)
@@ -65,10 +118,4 @@ func (m loadModel) View() string {
 	b.WriteString("\n\n")
 
 	return b.String()
-}
-
-func tickCmd() tea.Cmd {
-	return tea.Tick(time.Second*1, func(t time.Time) tea.Msg {
-		return tickMsg(t)
-	})
 }

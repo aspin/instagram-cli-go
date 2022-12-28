@@ -49,7 +49,7 @@ func newInputModel(appState *appState) StageModel {
 	return m
 }
 
-func (m inputModel) Init() tea.Cmd {
+func (m inputModel) Init(dispatch StageDispatcher) tea.Cmd {
 	return textinput.Blink
 }
 

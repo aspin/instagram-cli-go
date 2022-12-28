@@ -2,40 +2,51 @@ package program
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"instagram-cli-go/instagram"
 	"log"
 	"strings"
 )
 
 type appState struct {
+	err error
+
 	authUsername   string
 	authPassword   string
 	targetUsername string
 	targetPostURL  string
+
+	followers    instagram.UserSet
+	post         instagram.Media
+	postLikers   instagram.UserSet
+	postComments []instagram.Comment
 }
 
 type appModel struct {
-	stage  Stage
-	models map[Stage]StageModel
-	state  appState
+	stage    Stage
+	models   map[Stage]StageModel
+	state    appState
+	dispatch StageDispatcher
 }
 
 func New() *tea.Program {
-	m := appModel{
+	m := &appModel{
 		stage: StageInput,
 	}
 
 	models := map[Stage]StageModel{
 		StageInput: newInputModel(&m.state),
 		StageLoad:  newLoadModel(&m.state),
+		StageError: newErrorModel(&m.state),
 	}
 	m.models = models
 
 	p := tea.NewProgram(m)
+	m.dispatch = p.Send
 	return p
 }
 
 func (m appModel) Init() tea.Cmd {
-	return m.models[StageInput].Init()
+	return m.models[StageInput].Init(m.dispatch)
 }
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -72,7 +83,7 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 	m.stage = nextStage
-	return m, nextModel.Init()
+	return m, nextModel.Init(m.dispatch)
 }
 
 func (m appModel) View() string {
