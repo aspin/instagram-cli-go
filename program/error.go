@@ -19,22 +19,22 @@ func newErrorModel(appState *appState) StageModel {
 	return errorModel{appState: appState}
 }
 
-func (e errorModel) Init(dispatch StageDispatcher) tea.Cmd {
+func (m errorModel) Init(dispatch StageDispatcher) tea.Cmd {
 	return nil
 }
 
-func (e errorModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
-	return StageError, e, nil
+func (m errorModel) Update(msg tea.Msg) (Stage, StageModel, tea.Cmd) {
+	return StageError, m, nil
 }
 
-func (e errorModel) View() string {
+func (m errorModel) View() string {
 	var b strings.Builder
 
 	b.WriteString(errorStyle.Render("Encountered fatal error:"))
 	b.WriteRune('\n')
 	b.WriteRune('\n')
 
-	b.WriteString(noStyle.Render(e.appState.err.Error()))
+	b.WriteString(noStyle.Render(m.appState.err.Error()))
 	b.WriteRune('\n')
 	b.WriteRune('\n')
 

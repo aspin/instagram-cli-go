@@ -66,6 +66,11 @@ func (m loadModel) Init(dispatch StageDispatcher) tea.Cmd {
 			return
 		}
 		dispatch(progressMsg{completed: 0.6})
+
+		go func() {
+			time.Sleep(200 * time.Millisecond)
+			dispatch(progressMsg{completed: 1.0})
+		}()
 	}()
 	go func() {
 		time.Sleep(400 * time.Millisecond)

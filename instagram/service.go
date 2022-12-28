@@ -1,9 +1,5 @@
 package instagram
 
-import (
-	"fmt"
-)
-
 type Service interface {
 	Followers(username string) (UserSet, error)
 	Post(postURL string) (Media, error)
@@ -37,7 +33,7 @@ func (c *cachedService) PostLikers(postURL string) (UserSet, error) {
 	fixed := map[UserID]User{
 		"1234": {ID: "1234", Username: "kevinchen"},
 	}
-	return fixed, fmt.Errorf("http 500 failed: %s", postURL)
+	return fixed, nil
 }
 
 func (c *cachedService) PostComments(postURL string) ([]Comment, error) {
